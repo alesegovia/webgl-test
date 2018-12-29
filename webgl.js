@@ -40,15 +40,15 @@ function makeFrustum(left, right, bottom, top, near, far)
 
 function makeModelView(oyRot, translation)
 {
-	var a = oyRot;
-	var tx = translation[0];
-	var ty = translation[1];
-	var tz = translation[2];
-	var modelviewMx = [Math.cos(a), 0.0, -Math.sin(a), 0.0,
-			   0.0,         1.0,  0.0,         0.0,
-			   Math.sin(a), 0.0,  Math.cos(a), 0.0,
-			   tx,          ty,   tz,          1.0];
-	return modelviewMx;
+    var a = oyRot;
+    var tx = translation[0];
+    var ty = translation[1];
+    var tz = translation[2];
+    var modelviewMx = [Math.cos(a), 0.0, -Math.sin(a), 0.0,
+               0.0,         1.0,  0.0,         0.0,
+               Math.sin(a), 0.0,  Math.cos(a), 0.0,
+               tx,          ty,   tz,          1.0];
+    return modelviewMx;
 }
 
 function makeShaderProgram( vertexShaderSrc, fragmentShaderSrc )
@@ -77,7 +77,7 @@ function makeShaderProgram( vertexShaderSrc, fragmentShaderSrc )
         {
                 alert("Link Error: " + gl.getProgramInfoLog());
         }
-	return prog;
+    return prog;
 }
 
 function makeMesh()
@@ -99,7 +99,7 @@ function makeMesh()
         g_vbo = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, g_vbo);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vtxdata), gl.STATIC_DRAW);
-	return g_vbo;
+    return g_vbo;
 }
 
 var g_targetFPS = 30.0;
@@ -124,19 +124,19 @@ if (!gl)
 }
 else
 {
-	initialize();
+    initialize();
 }
 
 function initialize()
 {
-	canvas.onclick = toggleTimer;
+    canvas.onclick = toggleTimer;
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.clearColor(0.2, 0.2, 0.2, 1.0);
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	logExtensions();
+    logExtensions();
 
         // Load Texture:
         var texId = gl.createTexture();
@@ -153,7 +153,7 @@ function initialize()
 
         // Load program and constant uniforms:
 
-	var prog = makeShaderProgram( g_vtxShaderSrc, g_fgmtShaderSrc );
+    var prog = makeShaderProgram( g_vtxShaderSrc, g_fgmtShaderSrc );
         gl.useProgram(prog);
 
         var texLoc = gl.getUniformLocation(prog, "tex0");
@@ -167,26 +167,26 @@ function initialize()
         var projLoc = gl.getUniformLocation(prog, "proj");
         if (projLoc != -1)
         {
-		var aspect = canvas.width / canvas.height;
+        var aspect = canvas.width / canvas.height;
                 var projMx = makeFrustum(-1.0, 1.0, -1.0 / aspect, 1.0 / aspect, 1.0, 10.0);
                 gl.uniformMatrix4fv(projLoc, false, new Float32Array(projMx));
         }
 
-	// Save attribute ids for later:
+    // Save attribute ids for later:
         g_posLoc = gl.getAttribLocation(prog, "pos");
         g_colorLoc = gl.getAttribLocation(prog, "color");
         g_tcLoc = gl.getAttribLocation(prog, "tc");
-	g_mvLoc = gl.getUniformLocation(prog, "mv");
+    g_mvLoc = gl.getUniformLocation(prog, "mv");
         if (g_posLoc == -1 || g_colorLoc == -1 || g_tcLoc == -1 || g_mvLoc == -1)
         {
                 alert("Internal Error: attrib location not found.");
         }
 
-	// Build the mesh:
-	g_vbo = makeMesh();
+    // Build the mesh:
+    g_vbo = makeMesh();
 
-	// Kickoff renderloop. We can't rely on requestAnimationFrame
-	// because it is not available in Safari 5.
+    // Kickoff renderloop. We can't rely on requestAnimationFrame
+    // because it is not available in Safari 5.
         draw();
         g_timer = window.setInterval(draw, 1.0/g_targetFPS * 1000.0);
 }
@@ -200,10 +200,10 @@ function draw()
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-	g_a += (g_rotateSpeed * Math.PI)/180.0 * 1.0/g_targetFPS;
-	var translation = [0.0, 0.0, -4.0];
-	var modelviewMx = makeModelView( g_a, translation );
-	gl.uniformMatrix4fv(g_mvLoc, false, new Float32Array(modelviewMx));
+    g_a += (g_rotateSpeed * Math.PI)/180.0 * 1.0/g_targetFPS;
+    var translation = [0.0, 0.0, -4.0];
+    var modelviewMx = makeModelView( g_a, translation );
+    gl.uniformMatrix4fv(g_mvLoc, false, new Float32Array(modelviewMx));
 
         var fsize = 4;
         gl.enableVertexAttribArray(g_posLoc);
@@ -232,7 +232,7 @@ function toggleTimer()
         }
         else
         {
-		g_timer = window.setInterval(draw, 1.0/g_targetFPS * 1000.0);
+        g_timer = window.setInterval(draw, 1.0/g_targetFPS * 1000.0);
         }
 }
 
@@ -240,14 +240,14 @@ function logExtensions()
 {
         var exts = gl.getSupportedExtensions();
         var extsP = document.getElementById("extsP");
-	var extsStr = "";
-	for (var i in exts)
-	{
-		extsStr += "<br />" + exts[i];
-		console.log( exts[i] );
-	}
-	if ( extsP )
-	{
-		extsP.innerHTML += extsStr;
-	}
+    var extsStr = "";
+    for (var i in exts)
+    {
+        extsStr += "<br />" + exts[i];
+        console.log( exts[i] );
+    }
+    if ( extsP )
+    {
+        extsP.innerHTML += extsStr;
+    }
 }
