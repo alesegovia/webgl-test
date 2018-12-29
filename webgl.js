@@ -1,10 +1,10 @@
 // Copyright (C) 2013-2014 Alejandro Segovia - asegovi (AT) gmail.com
 // Use for commercial purposes as part of any software product is expressly forbidden.
 var g_vtxShaderSrc =
-"uniform mediump mat4 proj;     \n" +
-"uniform mediump mat4 mv;       \n" +
-"attribute mediump vec3 pos;    \n" +
-"attribute mediump vec3 color;  \n" +
+"uniform highp mat4 proj;     \n" +
+"uniform highp mat4 mv;       \n" +
+"attribute highp vec3 pos;    \n" +
+"attribute lowp vec3 color;  \n" +
 "attribute mediump vec2 tc;     \n" +
 "varying mediump vec3 v_color;  \n" +
 "varying mediump vec2 v_tc;     \n" +
@@ -17,7 +17,7 @@ var g_vtxShaderSrc =
 
 var g_fgmtShaderSrc =
 "uniform sampler2D tex0;                        \n" +
-"varying mediump vec3 v_color;                  \n" +
+"varying lowp vec3 v_color;                     \n" +
 "varying mediump vec2 v_tc;                     \n" +
 "void main()                                    \n" +
 "{                                              \n" +
@@ -38,55 +38,23 @@ function makeFrustum(left, right, bottom, top, near, far)
        return mx;
 }
 
-var gl = 0;
-var g_timer = 0;
-var g_vbo = -1;
-var g_a = Math.PI/4.0;
-var g_drawfunc = 0;
-
-var canvas = document.getElementById("canvas");
-gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-
-if (!gl)
+function makeModelView(oyRot, translation)
 {
-        alert("Unable to initialize WebGL. It may be disabled or not supported.");
+	var a = oyRot;
+	var tx = translation[0];
+	var ty = translation[1];
+	var tz = translation[2];
+	var modelviewMx = [Math.cos(a), 0.0, -Math.sin(a), 0.0,
+			   0.0,         1.0,  0.0,         0.0,
+			   Math.sin(a), 0.0,  Math.cos(a), 0.0,
+			   tx,          ty,   tz,          1.0];
+	return modelviewMx;
 }
-else
+
+function makeShaderProgram( vertexShaderSrc, fragmentShaderSrc )
 {
-	canvas.onclick = toggleTimer;
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        gl.clearColor(0.2, 0.2, 0.2, 1.0);
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-	/*
-        var exts = gl.getSupportedExtensions();
-        var extsP = document.getElementById("extsP");
-        var extsStr = "";
-        for (var i in exts)
-        {
-                extsStr += "<br />" + exts[i];
-        }
-        extsP.innerHTML += extsStr;
-	*/
-
-        // Load Texture:
-        var texId = gl.createTexture();
-        var img = new Image();
-        img.onload = function() {
-                gl.activeTexture(gl.TEXTURE0);
-                gl.bindTexture(gl.TEXTURE_2D, texId);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-                gl.generateMipmap(gl.TEXTURE_2D);
-        }
-        img.src = "http://www.alejandrosegovia.net/wp-content/uploads/2013/12/crate.jpg";
-
-        // Load program and render a pyramid
         var vtxShader = gl.createShader(gl.VERTEX_SHADER);
-        gl.shaderSource(vtxShader, g_vtxShaderSrc);
+        gl.shaderSource(vtxShader, vertexShaderSrc);
         gl.compileShader(vtxShader);
         if (!gl.getShaderParameter(vtxShader, gl.COMPILE_STATUS))
         {
@@ -94,7 +62,7 @@ else
         }
 
         var fgmtShader = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(fgmtShader, g_fgmtShaderSrc);
+        gl.shaderSource(fgmtShader, fragmentShaderSrc);
         gl.compileShader(fgmtShader);
         if (!gl.getShaderParameter(fgmtShader, gl.COMPILE_STATUS))
         {
@@ -109,7 +77,83 @@ else
         {
                 alert("Link Error: " + gl.getProgramInfoLog());
         }
+	return prog;
+}
 
+function makeMesh()
+{
+        var vtxdata = [ -1.0,  1.0,  1.0,   1.0, 0.0, 0.0,    0.0, 1.0,
+                        -1.0, -1.0,  1.0,   0.0, 1.0, 0.0,    0.0, 0.0,
+                         1.0,  1.0,  1.0,   1.0, 0.0, 1.0,    1.0, 1.0,
+                         1.0, -1.0,  1.0,   0.0, 0.0, 1.0,    1.0, 0.0,
+
+                         1.0,  1.0, -1.0,   0.0, 1.0, 0.0,    0.0, 1.0,
+                         1.0, -1.0, -1.0,   1.0, 0.0, 0.0,    0.0, 0.0,
+
+                        -1.0,  1.0, -1.0,   1.0, 0.0, 1.0,    1.0, 1.0,
+                        -1.0, -1.0, -1.0,   0.0, 0.0, 1.0,    1.0, 0.0,
+
+                        -1.0,  1.0, 1.0,    0.0, 1.0, 0.0,    0.0, 1.0,
+                        -1.0, -1.0, 1.0,    1.0, 0.0, 0.0,    0.0, 0.0 ];
+
+        g_vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, g_vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vtxdata), gl.STATIC_DRAW);
+	return g_vbo;
+}
+
+var g_targetFPS = 30.0;
+var g_rotateSpeed = 45.0; // degrees p/second
+var g_textureURL = "http://www.alejandrosegovia.net/wp-content/uploads/2013/12/crate.jpg";
+
+var gl = 0;
+var g_timer = 0;
+var g_vbo = -1;
+var g_a = Math.PI/4.0;
+var g_mvLoc = -1;
+var g_posLoc = -1;
+var g_colorLoc = -1;
+var g_tcLoc = -1;
+
+var canvas = document.getElementById("canvas");
+gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+
+if (!gl)
+{
+        alert("Unable to initialize WebGL. It may be disabled or not supported.");
+}
+else
+{
+	initialize();
+}
+
+function initialize()
+{
+	canvas.onclick = toggleTimer;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.clearColor(0.2, 0.2, 0.2, 1.0);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+	logExtensions();
+
+        // Load Texture:
+        var texId = gl.createTexture();
+        var img = new Image();
+        img.onload = function() {
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, texId);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                gl.generateMipmap(gl.TEXTURE_2D);
+        }
+        img.src = g_textureURL;
+
+        // Load program and constant uniforms:
+
+	var prog = makeShaderProgram( g_vtxShaderSrc, g_fgmtShaderSrc );
         gl.useProgram(prog);
 
         var texLoc = gl.getUniformLocation(prog, "tex0");
@@ -128,74 +172,54 @@ else
                 gl.uniformMatrix4fv(projLoc, false, new Float32Array(projMx));
         }
 
-        var posLoc = gl.getAttribLocation(prog, "pos");
-        var colorLoc = gl.getAttribLocation(prog, "color");
-        var tcLoc = gl.getAttribLocation(prog, "tc");
-        if (posLoc == -1 || colorLoc == -1 || tcLoc == -1)
+	// Save attribute ids for later:
+        g_posLoc = gl.getAttribLocation(prog, "pos");
+        g_colorLoc = gl.getAttribLocation(prog, "color");
+        g_tcLoc = gl.getAttribLocation(prog, "tc");
+	g_mvLoc = gl.getUniformLocation(prog, "mv");
+        if (g_posLoc == -1 || g_colorLoc == -1 || g_tcLoc == -1 || g_mvLoc == -1)
         {
-                alert("Internal Error: attrib location not found. Please report.");
+                alert("Internal Error: attrib location not found.");
         }
 
-        var vtxdata = [ -1.0,  1.0,  1.0,   1.0, 0.0, 0.0,  0.0, 1.0,
-                        -1.0, -1.0,  1.0,   0.0, 1.0, 0.0,  0.0, 0.0,
-                         1.0,  1.0,  1.0,   1.0, 0.0, 1.0,  1.0, 1.0,
-                         1.0, -1.0,  1.0,   0.0, 0.0, 1.0,  1.0, 0.0,
+	// Build the mesh:
+	g_vbo = makeMesh();
 
-                         1.0,  1.0, -1.0,   0.0, 1.0, 0.0,  0.0, 1.0,
-                         1.0, -1.0, -1.0,   1.0, 0.0, 0.0,  0.0, 0.0,
-
-                         -1.0,  1.0, -1.0,  1.0, 0.0, 1.0,  1.0, 1.0,
-                         -1.0, -1.0, -1.0,  0.0, 0.0, 1.0,  1.0, 0.0,
-
-                          -1.0,  1.0, 1.0,  0.0, 1.0, 0.0,  0.0, 1.0,
-                          -1.0, -1.0, 1.0,  1.0, 0.0, 0.0,  0.0, 0.0 ];
-
-        g_vbo = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, g_vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vtxdata), gl.STATIC_DRAW);
-
-        g_drawfunc = draw;
+	// Kickoff renderloop. We can't rely on requestAnimationFrame
+	// because it is not available in Safari 5.
         draw();
-        g_timer = window.setInterval(draw, 33); // redraw at 30Hz
+        g_timer = window.setInterval(draw, 1.0/g_targetFPS * 1000.0);
 }
 
 function draw()
 {
-        if (!gl || g_vbo == -1)
+        if (!gl || g_vbo == -1 || g_mvLoc == -1)
         {
                 return;
         }
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        var mvLoc = gl.getUniformLocation(prog, "mv");
-        if (mvLoc != -1)
-        {
-                g_a += (1.0 * Math.PI) / 180.0;
-                var a = g_a;
-                var tx = 0.0;
-                var ty = 0.0;
-                var tz = -4.0;
-                var modelviewMx = [Math.cos(a), 0.0, -Math.sin(a), 0.0,
-                                   0.0,         1.0,  0.0,         0.0,
-                                   Math.sin(a), 0.0,  Math.cos(a), 0.0,
-                                   tx,          ty,   tz,          1.0];
-                gl.uniformMatrix4fv(mvLoc, false, new Float32Array(modelviewMx));
-        }
+	g_a += (g_rotateSpeed * Math.PI)/180.0 * 1.0/g_targetFPS;
+	var translation = [0.0, 0.0, -4.0];
+	var modelviewMx = makeModelView( g_a, translation );
+	gl.uniformMatrix4fv(g_mvLoc, false, new Float32Array(modelviewMx));
 
         var fsize = 4;
-        gl.enableVertexAttribArray(posLoc);
-        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 8 * fsize, 0);
-        gl.enableVertexAttribArray(colorLoc);
-        gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 8 * fsize, fsize * 3);
-        gl.enableVertexAttribArray(tcLoc);
-        gl.vertexAttribPointer(tcLoc, 2, gl.FLOAT, false, 8 * fsize, fsize *  6);
+        gl.enableVertexAttribArray(g_posLoc);
+        gl.vertexAttribPointer(g_posLoc, 3, gl.FLOAT, false, 8 * fsize, 0);
+
+        gl.enableVertexAttribArray(g_colorLoc);
+        gl.vertexAttribPointer(g_colorLoc, 3, gl.FLOAT, false, 8 * fsize, fsize * 3);
+
+        gl.enableVertexAttribArray(g_tcLoc);
+        gl.vertexAttribPointer(g_tcLoc, 2, gl.FLOAT, false, 8 * fsize, fsize *  6);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 10);
 
-        gl.disableVertexAttribArray(tcLoc);
-        gl.disableVertexAttribArray(colorLoc);
-        gl.disableVertexAttribArray(posLoc);
+        gl.disableVertexAttribArray(g_tcLoc);
+        gl.disableVertexAttribArray(g_colorLoc);
+        gl.disableVertexAttribArray(g_posLoc);
 
 }
 
@@ -208,7 +232,22 @@ function toggleTimer()
         }
         else
         {
-                g_timer = window.setInterval(g_drawfunc, 33);
+		g_timer = window.setInterval(draw, 1.0/g_targetFPS * 1000.0);
         }
 }
 
+function logExtensions()
+{
+        var exts = gl.getSupportedExtensions();
+        var extsP = document.getElementById("extsP");
+	var extsStr = "";
+	for (var i in exts)
+	{
+		extsStr += "<br />" + exts[i];
+		console.log( exts[i] );
+	}
+	if ( extsP )
+	{
+		extsP.innerHTML += extsStr;
+	}
+}
