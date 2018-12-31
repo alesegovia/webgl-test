@@ -3,7 +3,11 @@
 
 This is the source code for the test used in alejandrosegovia.net/webgl - a page that lets you test if your browser supports WebGL 1.0.
 
+![ScreenShot](https://raw.github.com/alesegovia/webgl-test/master/output/safari.png)
+
+
 How does the test work?
+=======================
 
 This test consists in two steps: first, we attempt to create an HTML5 canvas element. If the canvas element is not supported, you will see an error message stating that your current browser does not support WebGL.
 
